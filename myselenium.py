@@ -42,6 +42,8 @@ for item in browser.find_element_by_class_name('list').find_elements_by_tag_name
         print(e)
         continue
 
+print('detail_page_arr: %s'.format(len(detail_page_arr)))
+
 for url in detail_page_arr:
     try:
         print(url)
@@ -59,24 +61,13 @@ for url in detail_page_arr:
                 break
             last_height = new_height
 
-        if browser.find_element_by_id('sufei-dialog-close'):
-            browser.find_element_by_id('sufei-dialog-close').click()
-
-        name = browser.find_element_by_xpath('//*[@id="mod-detail-title"]/h1').text
-        price_elm = browser.find_element_by_xpath('//*[@id="mod-detail-price"]/div/table/tbody/tr[1]/td[2]/div')
-        price = price_elm.text if price_elm else ''
-        start_amount_elm = browser.find_element_by_xpath('//*[@id="mod-detail-price"]/div/table/tbody/tr[2]/td[2]').text
-        start_amount = start_amount_elm.text if start_amount_elm else ''
-        delivery_elm = browser.find_element_by_xpath('//*[@id="mod-detail-bd"]/div[2]/div[9]/div/div/div[2]/div[1]/p[1]').text
-        delivery = delivery_elm.text if delivery_elm else ''
-        seller_service_elm = browser.find_element_by_xpath('//*[@id="mod-detail-bd"]/div[2]/div[14]/div/div/div[2]/ul/li/div').text
-        seller_service = seller_service_elm.text if seller_service_elm else ''
-        paid_types_elm = browser.find_element_by_xpath('//*[@id="mod-detail-bd"]/div[2]/div[15]/div/div[1]/div[2]/div/ul').text
-        paid_types = paid_types_elm.text if paid_types_elm else ''
-        transaction_support_elm = browser.find_element_by_xpath('//*[@id="mod-detail-bd"]/div[2]/div[15]/div/div[1]/div[4]/ul/li/div').text
-        transaction_support = transaction_support_elm.text if transaction_support_elm else ''
-        detail_info_elm = browser.find_element_by_xpath('//*[@id="mod-detail-attributes"]/div[1]').text
-        detail_info = detail_info_elm.text if detail_info_elm else ''
+        name = browser.find_element_by_class_name('d-title').text
+        price = browser.find_element_by_class_name('price-data-wrap').text
+        start_amount = browser.find_element_by_class_name('price-begin-wrap').text
+        delivery = browser.find_element_by_class_name('mod-detail-postage').text
+        seller_service = browser.find_element_by_class_name('mod-detail-guarantee').text
+        paid_types = browser.find_element_by_class_name('mod-detail-tradetype').text
+        detail_info = browser.find_element_by_id('mod-detail-attributes').text
 
         item_id = db.table('items').insert_get_id({
             'name': name,
@@ -87,11 +78,24 @@ for url in detail_page_arr:
             'delivery': delivery,
             'seller_service': seller_service,
             'paid_types': paid_types,
-            'transaction_support': transaction_support,
             'detail_info': detail_info,
         })
 
-        skus = browser.find_elements_by_xpath('//*[@id="mod-detail-bd"]/div[2]/div[13]/div/div/div/div[1]/div[2]/table/tbody/tr')
+        try:
+            units = browser.find_element_by_class_name('list-leading').find_elements_by_tag_name('li')
+            for i in units:
+                data_unit_config = i.find_element_by_tag_name('div').get_attribute('data-unit-config')
+                img32 = i.find_element_by_tag_name('img').get_attribute('src')
+                db.table('colors').insert({
+                    'item_id': item_id,
+                    'data-unit-config': data_unit_config,
+                    'img32': img,
+                })
+        except Exception as e:
+            print(e)
+            pass
+        
+        skus = browser.find_element_by_class_name('table-sku').find_elements_by_tag_name('tr')
         for i in skus:
             try:
                 sku_config = i.get_attribute('data-sku-config')
@@ -108,6 +112,7 @@ for url in detail_page_arr:
             except Exception as e:
                 print(e)
                 continue
+        
         tabs = browser.find_elements_by_xpath('//*[@id="dt-tab"]/div/ul/li')
         for i in tabs:
             try:
@@ -125,7 +130,6 @@ for url in detail_page_arr:
         for i in imgs:
             try:
                 inner_imgs = i.find_elements_by_tag_name('img')
-                pdb.set_trace()
                 for j in inner_imgs:
                     try:
                         img = j.get_attribute('src')
